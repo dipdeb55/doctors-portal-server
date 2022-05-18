@@ -34,10 +34,11 @@ async function run() {
         const srevicesCollection = client.db('doctors_portal').collection('services');
         const bookingCollection = client.db('doctors_portal').collection('bookings');
         const usersCollection = client.db('doctors_portal').collection('users');
+        const doctorsCollection = client.db('doctors_portal').collection('doctors');
 
         app.get('/services', async (req, res) => {
             const query = {};
-            const cursor = srevicesCollection.find(query);
+            const cursor = srevicesCollection.find(query).project({ name: 1 });
             const services = await cursor.toArray();
             res.send(services)
         });
@@ -103,7 +104,8 @@ async function run() {
 
         app.post('/booking', async (req, res) => {
             const booking = req.body;
-            const query = { treatment: booking.treatment, data: booking.data, patient: booking.patient }
+            const query = { treatment: booking.treatment, date: booking.date, patient: booking.patient }
+            console.log(query)
             const exsist = await bookingCollection.findOne(query);
             if (exsist) {
                 return res.send({ success: false, booking: exsist })
@@ -114,7 +116,7 @@ async function run() {
 
         app.get('/booking', verifyJWT, async (req, res) => {
             const patient = req.query.patient;
-            const decodedEmail = req.decode.email;
+            const decodedEmail = req.decoded.email;
             if (patient === decodedEmail) {
                 const query = { patient: patient };
                 const bookings = await bookingCollection.find(query).toArray();
@@ -123,6 +125,24 @@ async function run() {
             else {
                 return res.status(403).send({ message: 'forbidden access' })
             }
+        })
+
+        app.get('/doctors', async (req, res) => {
+            const doctor = await doctorsCollection.find().toArray();
+            res.send(doctor)
+        })
+
+        app.post('/doctors', async (req, res) => {
+            const doctor = req.body;
+            const result = await doctorsCollection.insertOne(doctor);
+            res.send(result)
+        })
+
+        app.delete('/doctors/:email', async (req, res) => {
+            const email = req.params.email;
+            const filter = { email: email }
+            const result = await doctorsCollection.deleteOne(filter)
+            res.send(result)
         })
     }
     finally {
