@@ -1,7 +1,7 @@
 const express = require('express')
 const cors = require('cors');
 require('dotenv').config()
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express()
 const port = process.env.PORT || 5000;
 const jwt = require('jsonwebtoken');
@@ -12,6 +12,7 @@ app.use(express.json())
 const uri = `mongodb+srv://doctors_portal:AzD8zEOOYkqoqDfv@cluster0.uafum.mongodb.net/myFirstDatabase?retryWrites=true&w=majority`;
 
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 })
+
 
 function verifyJWT(req, res, next) {
     const authHeader = req.headers.authorization;
@@ -105,13 +106,20 @@ async function run() {
         app.post('/booking', async (req, res) => {
             const booking = req.body;
             const query = { treatment: booking.treatment, date: booking.date, patient: booking.patient }
-            console.log(query)
+            // console.log(query)
             const exsist = await bookingCollection.findOne(query);
             if (exsist) {
                 return res.send({ success: false, booking: exsist })
             }
             const result = await bookingCollection.insertOne(booking);
             return res.send({ success: true, result });
+        })
+
+        app.get('/booking/:id', async (req, res) => {
+            const id = req.params.id
+            const query = { _id: ObjectId(id) };
+            const booking = await bookingCollection.findOne(query);
+            res.send(booking)
         })
 
         app.get('/booking', verifyJWT, async (req, res) => {
